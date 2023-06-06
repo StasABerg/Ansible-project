@@ -1,0 +1,105 @@
+##Redirect http to https block
+
+
+server {
+    listen 80;
+    server_name {{nginx_hostname}} www.{{nginx_hostname}};
+
+    location / {
+        return 301 https://{{nginx_hostname}}$request_uri;
+    }
+
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/letsencrypt;
+    }
+}
+
+
+
+
+##Redirect www to non www via https block
+
+server {
+    listen  443 ssl http2;
+    ssl_certificate /etc/letsencrypt/live/{{nginx_hostname}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{nginx_hostname}}/privkey.pem;
+    server_name   www.{{nginx_hostname}};
+    return 301 https://{{nginx_hostname}}$request_uri;
+}
+
+
+##Main Block
+
+server {
+
+        listen  443 ssl http2;      
+        ssl_certificate /etc/letsencrypt/live/{{nginx_hostname}}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/{{nginx_hostname}}/privkey.pem;
+	       
+        server_name  {{nginx_hostname}};
+        root /var/www/{{nginx_hostname}};
+        index index.php;        
+        
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        
+  
+       #include security
+       include /etc/nginx/conf.d/securitycf.cnf;
+
+       location ^~ /.well-known/acme-challenge/ {
+                     default_type "text/plain";                  
+                     root /var/www/letsencrypt;
+       }
+	
+	location = /xmlrpc.php {
+    	deny all;
+          }   	  
+        
+         if (!-e $request_filename) {
+                rewrite /wp-admin$ $scheme://$host$uri/ permanent;
+                rewrite ^(/[^/]+)?(/wp-.*) $2 last;
+                rewrite ^(/[^/]+)?(/.*\.php) $2 last;
+		}
+
+		location = /favicon.ico {
+					log_not_found off;
+					access_log off;
+		}
+
+		location = /robots.txt {
+    			try_files $uri $uri/ /index.php?$args;
+    			access_log off;
+			log_not_found off;
+		} 
+		location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|svgz|eot|otf|woff|woff2|ttf|webp)$ {
+			 expires max;
+			 add_header Cache-Control "public";
+			 log_not_found off;
+		}
+
+		location / {
+			try_files $uri $uri/ /index.php?q=$uri&$args;
+		}
+		
+		
+		location ~ \.php$ {
+			try_files $uri =404;
+			fastcgi_pass {{php_fpm_host}}:{{php_fpm_port}};
+			fastcgi_index index.php;
+			fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+			include fastcgi_params;
+
+			fastcgi_buffer_size           256k;
+			fastcgi_buffers               512 32k;
+			fastcgi_busy_buffers_size     512k;
+			fastcgi_temp_file_write_size  512k;
+			fastcgi_read_timeout          240s;
+
+			add_header X-FastCGI-Cache-Status $upstream_cache_status;
+	    #    add_header 'Access-Control-Allow-Origin' www.{{nginx_hostname}} always;
+
+		}	 
+      
+}
+

@@ -1,0 +1,4 @@
+---
+- name: restart php74-php-fpm
+  service: name=php74-php-fpm state=restarted
+   

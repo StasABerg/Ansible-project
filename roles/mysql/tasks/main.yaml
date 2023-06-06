@@ -1,0 +1,59 @@
+---
+#- rpm_key:
+#    state: present
+#    key: https://repo.mysql.com/mysql80-community-release-el8-1.noarch.rpm
+
+
+- name: download epel-release
+  yum:
+    disable_gpg_check: True
+    name: https://repo.mysql.com/mysql80-community-release-el7.rpm
+    state: present
+
+  
+- name: Install Mysql8.0 
+  yum:
+    disable_gpg_check: True 
+    name: mysql-server 
+    enablerepo: mysql80-community
+    state: present   
+
+- name: Copy configuration file
+  template: 
+    src: my.cnf.j2 
+    dest: /etc/my.cnf 
+
+- name: Start&Enable Mysql8.0 Service
+  systemd: 
+    name: mysqld
+    state: restarted 
+    enabled: yes   
+
+
+- name: get root password
+  shell: "grep 'A temporary password is generated for root@localhost' /var/log/mysql_error.log | awk -F ' ' '{print $(NF)}'"
+  register: root_password
+
+
+- name: update expired root user password
+  command: mysql -uroot -p'{{ root_password.stdout }}' --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}';"
+
+
+#- name: Set MySQL root Password
+  #mysql_user:
+    #login_host: 'localhost'
+    #login_user: 'root'
+    #login_password: '{{ root_password.stdout }}'
+    #name: 'root'
+    #password: '{{ mysql_root_password }}'
+    #state: present
+ 
+- name: create database
+  command: mysql --user root --password={{ mysql_root_password}} --execute="create database {{ wp_db_name }};"  
+
+- name: Create WP Database user
+  command: mysql --user root --password={{ mysql_root_password}} --execute="create user {{ mysql_user }}@localhost  identified by '{{ mysql_user_password }}';"
+
+- name: Grant All Privileges For Database User
+  command: mysql --user root --password={{ mysql_root_password }} --execute="grant all privileges on {{ wp_db_name }}.* to '{{ mysql_user }}'@localhost;"
+

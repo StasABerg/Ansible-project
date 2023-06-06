@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo "Please enter site hostname."
+read sitename
+
+echo "Please enter site password"
+read sitepass
+
+echo "Please enter database username."
+read username
+
+echo "Please enter database name."
+read dbname
+
+echo "Please enter database password."
+read password
+
+
+
+ansible-playbook install.yml --extra-vars "mysql_network_user=$username wp_network_db_name=$dbname mysql_network_password=$password nginx_hostname=$sitename wpsite_pass=$sitepass"

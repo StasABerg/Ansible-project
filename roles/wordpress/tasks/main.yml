@@ -1,0 +1,137 @@
+---  
+- name: Download WordPress
+  get_url: url=http://wordpress.org/latest.zip dest=/var/www/latest.zip
+  
+
+- name: Extract archive
+  file:
+    path: "/var/www/{{ server_hostname }}"
+    state: directory
+
+       
+- unarchive:
+     src: https://wordpress.org/latest.zip
+     dest: /opt/
+     setype: httpd_sys_content_t
+     owner: '{{ ansible_user }}'
+     group: '{{ ansible_user }}'
+     remote_src: yes 
+    
+
+- name: Move Wordpress folder
+  shell: mv /opt/wordpress/* /var/www/{{ server_hostname }}
+
+
+- name: Change wp-config-sample.php to wp-config.php
+  file:
+    state: absent
+    path: /var/www/{{ server_hostname }}/wp-config-sample.php
+
+- name: copy custom wp-config.php
+  template:
+    src: wp-config.php.j2
+    dest: /var/www/{{ server_hostname }}/wp-config.php
+
+- name: Recursively change ownership of a directory to nginx:nginx
+  file:
+    path: "/var/www/{{ server_hostname }}"
+    state: directory
+    recurse: yes
+    owner: nginx
+    group: nginx
+
+
+#- name: Checking WP-CLI, Hold on...
+#  stat:
+#    path: /usr/local/bin/wp
+#  register: setup_wp_cli
+
+#- name: Installing WP-CLI, Hold on...
+#  get_url:
+#    url:  https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+#    dest: /usr/local/bin/wp
+#    mode: 777
+#  when: setup_wp_cli.stat.islnk is not defined
+  
+#- name: copy wp-cli config
+#  copy: 
+#    src: 'wp-cli.yml'
+#    dest: '{{ wp_doc_dir }}' 
+#    mode: 0655     
+  
+#- name: Fetching random salts for WordPress config, Hold on...
+#  uri:
+#    url: https://api.wordpress.org/secret-key/1.1/salt/
+#    method: GET
+#    return_content: yes
+#  register: wp_salt
+  
+#- name: Copy wp-config.php File, Hold on...
+#  template: src=wp-config.php.j2  dest={{ wp_doc_dir }}/wp-config.php
+  
+#- name: ensure private key and public one are present
+#  copy: 
+#    src: '{{ item }}'
+#    dest: "/root/.ssh/{{ item }}" 
+#    mode: 0400
+#  with_items:
+#    - id_rsa.pub
+#    - id_rsa  
+    
+#- name: Add BitBucket to known_hosts
+#  known_hosts:  
+#    name: bitbucket.org
+#    key: "{{ lookup('file', 'bitbucket.key') }}"    
+    
+#- name: Init git
+#  shell: git init &&  git remote add origin git@bitbucket.org:amazingbet/amazing-bt10.git
+#  args:
+#    chdir: '{{ wp_doc_dir }}'     
+    
+#- name: Install Amazing Theme
+#  shell: git fetch && git checkout origin/master -ft
+#  args:
+#    chdir: '{{ wp_doc_dir }}'
+#  
+#- name: Setup WordPress Tables, Hold on...
+#  shell: wp core multisite-install --allow-root  --skip-config --url=https://www.{{ server_hostname }} --title="{{ blog_name }}" --admin_name="{{ admin_name }}" --admin_password={{ admin_password }} --admin_email="{{ admin_email }}"
+#  args:
+#    chdir: '{{ wp_doc_dir }}'
+#  
+#- name: Create DevTest 
+#  shell: wp site create --allow-root --slug=devtest --title=DevTest --email="{{ admin_email }}"
+#  args:
+#    chdir: '{{ wp_doc_dir }}' 
+#
+#- name: Activate plugins
+#  shell: wp plugin activate --allow-root --skip-themes --network advanced-custom-fields-pro-ce amz-cookie-law google-sitemap-generator-ce persent-table-buttons tinymce-advanced
+#  args:
+#    chdir: '{{ wp_doc_dir }}'  
+#    
+#- name: Install plugins
+#  shell: wp plugin install --allow-root --skip-themes  redis-cache password-protected all-in-one-seo-pack    
+#  args:
+#    chdir: '{{ wp_doc_dir }}'  
+
+#- name: Activate installed plugins
+#  shell:  wp plugin activate --allow-root --skip-themes --network redis-cache password-protected all-in-one-seo-pack    
+#  args:
+#    chdir: '{{ wp_doc_dir }}'  
+#
+#- name: Delete  some plugins
+#  shell:  wp plugin delete --allow-root --skip-themes akismet hello
+#  args:
+#    chdir: '{{ wp_doc_dir }}'  
+      
+#- name: Switch theme
+#  shell: wp theme enable custome_theme --allow-root --network --activate
+#  args:
+#    chdir: '{{ wp_doc_dir }}'  
+#
+#- name: Import ACF fields
+#  shell: wp acf-json import --allow-root --all_sites
+#  args:
+#    chdir: '{{ wp_doc_dir }}'     
+  
+  
+

@@ -1,0 +1,71 @@
+---
+
+- name: Copy repo files
+  template: src=nginx.repo dest=/etc/yum.repos.d/nginx.repo
+
+- name: update YUM repository
+  yum:
+    name: '*'
+    state: latest
+
+- name: install nginx webserver
+  yum: name=nginx state=present
+
+- name: Set httpd_can_network_connect flag on and keep it persistent across reboots
+  seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+
+- name: Set httpd_can_network_relay flag on and keep it persistent across reboots
+  seboolean:
+    name: httpd_can_network_relay
+    state: yes
+    persistent: yes      
+  
+- name: Create webroot directory
+  file:
+    path: /var/www/{{server_hostname}}
+    state: directory
+
+- name: Create letsencrypt directory
+  file:
+    path: /var/www/letsencrypt
+    state: directory    
+    
+- name: Allow NGINX access to webroot
+  sefcontext:
+    target: /var/www/{{server_hostname}}
+    setype: httpd_sys_content_t 
+    ftype: d
+    state: present
+    
+- name: Allow NGINX access to webroot
+  sefcontext:
+    target: /var/www/letsencrypt
+    setype: httpd_sys_content_t 
+    ftype: d
+    state: present    
+
+- name: Apply new SELinux file context to filesystem
+  command: "restorecon -ir  /var/www/{{server_hostname}}"
+  
+- name: Apply new SELinux file context to filesystem
+  command: "restorecon -ir  /var/www/letsencrypt"  
+    
+- name: Copy main nginx configuration
+  template: 
+    src: nginx.conf 
+    dest: /etc/nginx/nginx.conf
+
+- name: Copy app vhost
+  template: src=vhost.conf dest=/etc/nginx/conf.d/vhost.conf
+  
+- name: Copy app vhost
+  template: src=securitycf.cnf dest=/etc/nginx/conf.d/securitycf.cnf  
+  
+- name: Copy app vhost
+  template: src=vhost_ssl._conf dest=/etc/nginx/conf.d/vhost_ssl._conf
+  notify: restart nginx
+
+

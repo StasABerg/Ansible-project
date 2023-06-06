@@ -1,0 +1,38 @@
+---
+- name: Checking Network Connection, wait a while...
+  shell: ping -c2 google.com
+
+- name: Reload ansible_facts
+  setup:
+
+- name: Installing required packages
+  yum: 
+    name="epel-release"    
+    update_cache=yes
+    state=present 
+
+
+- name: Installing required packages
+  yum: 
+    name="python-setuptools,MySQL-python,libsemanage-python,policycoreutils-python, python-passlib, git, supervisor,nano, unzip, vim ,python3"
+    state=present
+
+- name: Create certbot DNS file
+  file:
+    path: /root/.secret/
+    state: directory
+
+- name: Install certbot
+  shell: |
+    python3 -m venv /opt/certbot/
+    /opt/certbot/bin/pip install --upgrade pip
+    /opt/certbot/bin/pip install certbot certbot-nginx
+    /opt/certbot/bin/pip install certbot-dns-cloudflare
+
+- name: Create symbolic link 
+  file:
+    src: "/opt/certbot/bin/certbot"
+    dest: "/usr/bin/certbot"
+    state: link
+
+

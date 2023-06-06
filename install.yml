@@ -1,0 +1,19 @@
+---
+- name: Install MySQL 8.0, Nginx, PHP-FPM 7.3, WP
+  hosts: abs02
+  #connection: local
+  become: yes
+  gather_facts: yes
+  
+
+  roles:
+#FIRST WP INSTALL
+#    - common
+#    - nginx
+#    - mysql
+#    - php-fpm
+   # - redis
+#    - wordpress
+    
+#INSTALL WP NETWORK
+    - network

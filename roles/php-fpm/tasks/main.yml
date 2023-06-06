@@ -1,0 +1,40 @@
+---
+- name: Install repo
+  yum:
+    disable_gpg_check: True
+    name: "http://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+    state: present
+
+- name: Enable repo
+  shell: yum-config-manager --enable remi-php74
+
+- name: Install php-fpm and deps
+  yum:
+   name: ['php74', 'php74-php-fpm', 'php74-php-gd', 'php74-php-json', 'php74-php-mbstring', 'php74-php-mysql', 'php74-php-xml', 'php74-php-opcache', 'php74-php-pecl-zip','php74-php-fpm', 'php74-php-pecl-redis5.x86_64']
+   state: present
+   update_cache: yes
+
+- name: Create symlink
+  file:
+    src: /usr/bin/php74
+    dest: /usr/bin/php
+    state: link
+
+- name: Copy php-fpm configuration
+  copy: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: 'www.conf', dest: '/etc/opt/remi/php74/php-fpm.d/www.conf' }
+    - { src: 'php.ini', dest: '/etc/opt/remi/php74/php.ini' }
+    - { src: 'php-fpm.conf', dest: '/etc/opt/remi/php74/php-fpm.conf' }
+  notify: restart php74-php-fpm
+
+- name: Allow PHP-FPM works on 9070
+  seport:
+    ports: 9070
+    proto: tcp
+    setype: http_port_t
+    state: present
+
+- name: Enable php74-php-fpm
+  service: name=php74-php-fpm state=started enabled=yes
+

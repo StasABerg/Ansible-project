@@ -1,0 +1,191 @@
+---
+
+- name: Create webroot directory
+  file:
+    path: /var/www/{{nginx_hostname}}
+    state: directory
+
+    
+#- name: Allow NGINX access to webroot
+#  sefcontext:
+#    target: /var/www/{{nginx_hostname}}
+#    setype: httpd_sys_content_t 
+#    ftype: d
+#    state: present
+    
+#- name: Allow NGINX access to webroot
+#  sefcontext:
+#    target: /var/www/letsencrypt
+#    setype: httpd_sys_content_t 
+#    ftype: d
+#    state: present    
+
+#- name: Apply new SELinux file context to filesystem
+#  command: "restorecon -ir  /var/www/{{nginx_hostname}}"
+  
+#- name: Apply new SELinux file context to filesystem
+#  command: "restorecon -ir  /var/www/letsencrypt"  
+    
+
+#- name: Copy app vhost
+#  template: src=vhost_ssl._conf dest=/etc/nginx/conf.d/{{nginx_hostname}}.conf
+  #notify: restart nginx
+
+- name: create database
+  command: mysql --user root --password={{ mysql_root_password}} --execute="create database {{ wp_network_db_name }};"
+
+- name: Create WP Database user
+  command: mysql --user root --password={{ mysql_root_password}} --execute="create user '{{ mysql_network_user }}'@localhost  identified by '{{ mysql_network_password }}';"
+
+- name: Grant All Privileges For Database User
+  command: mysql --user root --password={{ mysql_root_password }} --execute="grant all privileges on {{ wp_network_db_name }}.* to '{{ mysql_network_user }}'@localhost;"
+
+
+- name: Extract archive
+  file:
+    path: "/var/www/{{nginx_hostname}}"
+    state: directory
+
+
+- unarchive:
+     src: https://wordpress.org/latest.zip
+     dest: /opt/
+     setype: httpd_sys_content_t
+     owner: '{{ ansible_user }}'
+     group: '{{ ansible_user }}'
+     remote_src: yes
+
+
+- name: Move Wordpress folder
+  shell: mv /opt/wordpress/* /var/www/{{nginx_hostname}}
+
+- name: Change wp-config-sample.php to wp-config.php
+  file:
+    state: absent
+    path: /var/www/{{nginx_hostname}}/wp-config-sample.php    
+
+- name: copy custom wp-config.php
+  template:
+    src: wp-config.php.j2
+    dest: /var/www/{{nginx_hostname}}/wp-config.php
+
+- name: Get Salts
+  uri:
+   url: "https://api.wordpress.org/secret-key/1.1/salt/"
+   return_content: yes
+  register: api_info
+
+- name: insert unique key and salts in wp-config
+  lineinfile:
+    path: /var/www/{{nginx_hostname}}/wp-config.php
+    regex: "put your unique phrase here"
+    insertafter: "put your unique phrase here"
+    line: "{{ api_info.content }}"
+
+
+- name: Recursively change ownership of a directory to nginx:nginx
+  file:
+    path: "/var/www/{{nginx_hostname}}"
+    state: directory
+    recurse: yes
+    owner: nginx
+    group: nginx
+
+#- name: Copy cloudflare.ini
+#  template: src=cloudflare.ini dest=/root/.secret/cloudflare.ini
+#  #notify: restart nginx
+
+
+#- name: Change permission on cloudflare.ini
+#  file:
+#    path: /root/.secret/cloudflare.ini
+#    state: file
+#    owner: root
+#    group: root
+#    mode: 0600
+
+
+- name: request SSL from letsencrypt using cloudflare
+  shell: docker run -it --rm --name certbot -v "/etc/letsencrypt:/etc/letsencrypt" -v "/var/lib/letsencrypt:/var/lib/letsencrypt" -v "/root/.secret/cloudflare.ini:/cloudflare.ini:ro" \certbot/dns-cloudflare certonly --dns-cloudflare --dns-cloudflare-propagation 60 --dns-cloudflare-credentials /cloudflare.ini -d "{{nginx_hostname}}" -d www."{{nginx_hostname}}"
+  retries: 5
+  delay: 2
+  ignore_errors: True
+
+
+- name: request SSL from letsencrypt using cloudflare
+  shell: docker run -it --rm --name certbot -v "/etc/letsencrypt:/etc/letsencrypt" -v "/var/lib/letsencrypt:/var/lib/letsencrypt" -v "/root/.secret/cloudflare.ini:/cloudflare.ini:ro" \certbot/dns-cloudflare certonly --non-interactive --dns-cloudflare --dns-cloudflare-propagation 60 --dns-cloudflare-credentials /cloudflare.ini -d "{{nginx_hostname}}" -d www."{{nginx_hostname}}"
+  retries: 5
+  delay: 2
+  ignore_errors: True
+
+
+
+
+
+
+
+- name: request SSL from letsencrypt using cloudflare
+  shell: docker run -it --rm --name certbot -v "/etc/letsencrypt:/etc/letsencrypt" -v "/var/lib/letsencrypt:/var/lib/letsencrypt" -v "/root/.secret/cloudflare.ini:/cloudflare.ini:ro" \certbot/dns-cloudflare certonly --non-interactive --dns-cloudflare --dns-cloudflare-propagation 10 --dns-cloudflare-credentials /cloudflare.ini -d "{{nginx_hostname}}" -d www."{{nginx_hostname}}" 
+  retries: 5
+  delay: 2 
+  ignore_errors: True
+
+
+
+
+ 
+- name: Copy app vhost
+  template: src=vhost_ssl._conf dest=/etc/nginx/conf.d/{{nginx_hostname}}.conf
+
+
+
+
+
+- name: restart nginx
+  shell: systemctl restart nginx
+  ignore_errors: True
+
+
+
+
+- name: Finish WP installation
+  shell: |
+   wp core install --path=/var/www/{{nginx_hostname}} --url={{nginx_hostname}} --title={{nginx_hostname}} --admin_user=admin37109 --admin_password={{wpsite_pass}} --admin_email=johnnyblack888@hotmail.com
+   wp plugin install --path=/var/www/{{nginx_hostname}} --activate ~/.plugins/Basic-Auth-master.zip ~/.plugins/bulk-media-register-add-on-wpcron.zip all-in-one-seo-pack all-404-redirect-to-homepage autoptimize classic-editor wenprise-pinyin-slug bulk-media-register disable-search xo-featured-image-tools header-footer-code-manager disable-comments code-snippets wps-hide-login wordfence --user=1
+   wp language core install --path=/var/www/{{nginx_hostname}} zh_CN
+   wp site switch-language --path=/var/www/{{nginx_hostname}} zh_CN 
+   wp post --path=/var/www/{{nginx_hostname}} delete $(wp post --path=/var/www/{{nginx_hostname}} list --post_type='page' --format=ids)
+   wp disable-comments --path=/var/www/{{nginx_hostname}} settings --types=all 
+   wp rewrite --path=/var/www/{{nginx_hostname}} structure /%postname%
+   wp menu --path=/var/www/{{nginx_hostname}} create "Main"
+   wp option --path=/var/www/{{nginx_hostname}} set blog_public 0
+   wp widget --path=/var/www/{{nginx_hostname}} reset sidebar-1
+   wp post --path=/var/www/{{nginx_hostname}} delete 1
+   wp plugin --path=/var/www/{{nginx_hostname}} delete akismet hello
+
+
+
+- name: Finishing...
+  file:                                                            
+   path: "/var/www/{{nginx_hostname}}"                             
+   state: directory                                                
+   recurse: yes                                                    
+   owner: nginx                                                    
+   group: nginx
+
+
+
+
+
+
+
+#- name: Update post cronjob
+#  ansible.builtin.cron:
+#   name: "Update Post"
+#   state: present
+#   weekday: "5"
+#   hour: "1"
+#   minute: "0"
+#   job: "wp post --path=/var/www/{{nginx_hostname}} update $(wp post --path=/var/www/{{nginx_hostname}} list --post_type='post' --format=ids) --force"
+#
+

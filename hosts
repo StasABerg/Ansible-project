@@ -1,0 +1,3 @@
+
+[abs02]
+srv ansible_host=143.198.92.115 ansible_port=5171 ansible_user=eight ansible_ssh_private_key_file=/etc/ansible/abs02.pem ansible_sudo_pass=V+3xm4^h#K)R1N2LS=7Q
