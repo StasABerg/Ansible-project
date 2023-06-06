@@ -1,30 +1,21 @@
-#Dear Admin here's the configuration for the new server
-# These are the WordPress database settings
-wp_db_name: abs_db
+
+wp_db_name: databasename
 wp_host_ip: 127.0.0.1
 
 # You shouldn't need to change this.
 mysql_port: 3306
 mysql_host: 127.0.0.1
-mysql_root_password: B8DyTfCVqF&SH3rs!FqK
-mysql_user: abs_user
-mysql_user_password: tg7#9dhv<p1$3DRD
-wp_table_prefix: abs__
-server_hostname: abs02
-
-#redis_host: 127.0.0.1
-#redis_port: 6379
-#redis_database: 1
-#redis_password: 6giAzv#C16csdsdvc!
+mysql_root_password: password
+mysql_user: username
+mysql_user_password: password
+wp_table_prefix: prefix
+server_hostname: servername
 
 wp_doc_dir: "/var/www/{{ server_hostname }}"
 
 php_fpm_port: 9070
 php_fpm_host: 127.0.0.1
 
-#basic_auth_name: ids_admin	
-#basic_auth_pass: sdr54@!dc
 
-#Please login to the server and create the database user 
 
 

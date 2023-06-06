@@ -47,11 +47,11 @@
     ftype: d
     state: present    
 
-- name: Apply new SELinux file context to filesystem
-  command: "restorecon -ir  /var/www/{{server_hostname}}"
+#- name: Apply new SELinux file context to filesystem
+#  command: "restorecon -ir  /var/www/{{server_hostname}}"
   
-- name: Apply new SELinux file context to filesystem
-  command: "restorecon -ir  /var/www/letsencrypt"  
+#- name: Apply new SELinux file context to filesystem
+#  command: "restorecon -ir  /var/www/letsencrypt"  
     
 - name: Copy main nginx configuration
   template: 

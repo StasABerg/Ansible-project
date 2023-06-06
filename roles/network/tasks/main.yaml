@@ -91,19 +91,6 @@
     owner: nginx
     group: nginx
 
-#- name: Copy cloudflare.ini
-#  template: src=cloudflare.ini dest=/root/.secret/cloudflare.ini
-#  #notify: restart nginx
-
-
-#- name: Change permission on cloudflare.ini
-#  file:
-#    path: /root/.secret/cloudflare.ini
-#    state: file
-#    owner: root
-#    group: root
-#    mode: 0600
-
 
 - name: request SSL from letsencrypt using cloudflare
   shell: docker run -it --rm --name certbot -v "/etc/letsencrypt:/etc/letsencrypt" -v "/var/lib/letsencrypt:/var/lib/letsencrypt" -v "/root/.secret/cloudflare.ini:/cloudflare.ini:ro" \certbot/dns-cloudflare certonly --dns-cloudflare --dns-cloudflare-propagation 60 --dns-cloudflare-credentials /cloudflare.ini -d "{{nginx_hostname}}" -d www."{{nginx_hostname}}"
@@ -117,10 +104,6 @@
   retries: 5
   delay: 2
   ignore_errors: True
-
-
-
-
 
 
 
