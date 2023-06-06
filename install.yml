@@ -13,7 +13,6 @@
     - nginx
     - mysql
     - php-fpm
-    - redis
     - wordpress
     
 #INSTALL WP NETWORK
